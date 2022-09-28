@@ -271,7 +271,7 @@ const Board = () => {
             </span>
           </p>
           <p>
-            Red: <span className="text-danger">{pointsRed}</span> - Red:{" "}
+            Red: <span className="text-danger">{pointsRed}</span> - Black:{" "}
             <span className="text-dark">{pointsBlack}</span>
           </p>
           {isGameOver() && (
