@@ -3,8 +3,8 @@ import BoardCell from "./BoardCell";
 
 const Board = () => {
   const [board, setBoard] = useState<Array<Array<number>>>([
-    [0, 0, 0, 1, 0, 1, 0, 1],
-    [2, 0, 1, 0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1, 0, 1, 0],
     [0, 1, 0, 1, 0, 1, 0, 1],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
