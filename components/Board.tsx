@@ -3,8 +3,8 @@ import BoardCell from "./BoardCell";
 
 const Board = () => {
   const [board, setBoard] = useState<Array<Array<number>>>([
-    [0, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 0, 0, 1, 0, 1, 0, 1],
+    [2, 0, 1, 0, 1, 0, 1, 0],
     [0, 1, 0, 1, 0, 1, 0, 1],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
@@ -18,6 +18,157 @@ const Board = () => {
   const [pointsBlack, setPointsBlack] = useState(0);
 
   let jumped = false;
+
+  const getValidMoves = (row: number, col: number) => {
+    const validMoves: number[][] = [];
+    const validJumps: number[][] = [];
+    const piece = board[row][col];
+
+    if (piece === 11 || piece === 22) {
+      if (row > 0 && col > 0) {
+        if (board[row - 1][col - 1] === 0) {
+          validMoves.push([row - 1, col - 1]);
+        } else if (
+          (board[row - 1][col - 1] === 1 || board[row - 1][col - 1] === 11) &&
+          row > 1 &&
+          col > 1 &&
+          board[row - 2][col - 2] === 0
+        ) {
+          validJumps.push([row - 2, col - 2]);
+        }
+      }
+      if (row > 0 && col < 7) {
+        if (board[row - 1][col + 1] === 0) {
+          validMoves.push([row - 1, col + 1]);
+        } else if (
+          (board[row - 1][col + 1] === 1 || board[row - 1][col + 1] === 11) &&
+          row > 1 &&
+          col < 6 &&
+          board[row - 2][col + 2] === 0
+        ) {
+          validJumps.push([row - 2, col + 2]);
+        }
+      }
+      if (row < 7 && col > 0) {
+        if (board[row + 1][col - 1] === 0) {
+          validMoves.push([row + 1, col - 1]);
+        } else if (
+          (board[row + 1][col - 1] === 2 || board[row + 1][col - 1] === 22) &&
+          row < 6 &&
+          col > 1 &&
+          board[row + 2][col - 2] === 0
+        ) {
+          validJumps.push([row + 2, col - 2]);
+        }
+      }
+      if (row < 7 && col < 7) {
+        if (board[row + 1][col + 1] === 0) {
+          validMoves.push([row + 1, col + 1]);
+        } else if (
+          (board[row + 1][col + 1] === 2 || board[row + 1][col + 1] === 22) &&
+          row < 6 &&
+          col < 6 &&
+          board[row + 2][col + 2] === 0
+        ) {
+          validJumps.push([row + 2, col + 2]);
+        }
+      }
+    } else {
+      if (piece === 2) {
+        if (row > 0 && col > 0) {
+          if (board[row - 1][col - 1] === 0) {
+            validMoves.push([row - 1, col - 1]);
+          } else if (
+            (board[row - 1][col - 1] === 1 || board[row - 1][col - 1] === 11) &&
+            row > 1 &&
+            col > 1 &&
+            board[row - 2][col - 2] === 0
+          ) {
+            validJumps.push([row - 2, col - 2]);
+          }
+        }
+        if (row > 0 && col < 7) {
+          if (board[row - 1][col + 1] === 0) {
+            validMoves.push([row - 1, col + 1]);
+          } else if (
+            (board[row - 1][col + 1] === 1 || board[row - 1][col + 1] === 11) &&
+            row > 1 &&
+            col < 6 &&
+            board[row - 2][col + 2] === 0
+          ) {
+            validJumps.push([row - 2, col + 2]);
+          }
+        }
+      } else {
+        if (row < 7 && col > 0) {
+          if (board[row + 1][col - 1] === 0) {
+            validMoves.push([row + 1, col - 1]);
+          } else if (
+            (board[row + 1][col - 1] === 2 || board[row + 1][col - 1] === 22) &&
+            row < 6 &&
+            col > 1 &&
+            board[row + 2][col - 2] === 0
+          ) {
+            validJumps.push([row + 2, col - 2]);
+          }
+        }
+        if (row < 7 && col < 7) {
+          if (board[row + 1][col + 1] === 0) {
+            validMoves.push([row + 1, col + 1]);
+          } else if (
+            (board[row + 1][col + 1] === 2 || board[row + 1][col + 1] === 22) &&
+            row < 6 &&
+            col < 6 &&
+            board[row + 2][col + 2] === 0
+          ) {
+            validJumps.push([row + 2, col + 2]);
+          }
+        }
+      }
+    }
+
+    return { validMoves, validJumps };
+  };
+
+  const getJumpedOver = (row: number, col: number) => {
+    if (turn === 2 || turn === 22) {
+      if (row > 1 && col > 1 && board[row - 1][col - 1] !== 0) {
+        if (
+          (board[row - 1][col - 1] === 1 || board[row - 1][col - 1] === 11) &&
+          board[row - 2][col - 2] === 0
+        ) {
+          return true;
+        }
+      }
+      if (row > 1 && col < 6 && board[row - 1][col + 1] !== 0) {
+        if (
+          (board[row - 1][col + 1] === 1 || board[row - 1][col + 1] === 11) &&
+          board[row - 2][col + 2] === 0
+        ) {
+          return true;
+        }
+      }
+    } else {
+      if (row < 6 && col > 1 && board[row + 1][col - 1] !== 0) {
+        if (
+          (board[row + 1][col - 1] === 2 || board[row + 1][col - 1] === 22) &&
+          board[row + 2][col - 2] === 0
+        ) {
+          return true;
+        }
+      }
+      if (row < 6 && col < 6 && board[row + 1][col + 1] !== 0) {
+        if (
+          (board[row + 1][col + 1] === 2 || board[row + 1][col + 1] === 22) &&
+          board[row + 2][col + 2] === 0
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
 
   const handleClick = (row: number, col: number) => {
     if (isGameOver()) return;
@@ -40,7 +191,11 @@ const Board = () => {
       newBoard[row][col] = board[prevRow][prevCol];
       newBoard[prevRow][prevCol] = 0;
       setBoard(newBoard);
-
+      if (turn === 1 && row === 7) {
+        newBoard[row][col] = 11;
+      } else if (turn === 2 && row === 0) {
+        newBoard[row][col] = 22;
+      }
       if (!jumped) {
         setTurn(turn === 1 ? 2 : 1);
       }
