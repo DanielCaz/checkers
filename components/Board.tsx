@@ -13,9 +13,12 @@ const Board = () => {
     [2, 0, 2, 0, 2, 0, 2, 0],
   ]);
   const [turn, setTurn] = useState<number>(2);
-  const [selected, setSelected] = useState<number[]>([]);
   const [pointsRed, setPointsRed] = useState(0);
   const [pointsBlack, setPointsBlack] = useState(0);
+  const [capturedRed, setCapturedRed] = useState(0);
+  const [capturedBlack, setCapturedBlack] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [nextJumps, setNextJumps] = useState<number[][]>([]);
 
   let jumped = false;
 
@@ -127,6 +130,8 @@ const Board = () => {
       }
     }
 
+    console.log(validJumps);
+
     return { validMoves, validJumps };
   };
 
@@ -173,6 +178,19 @@ const Board = () => {
   const handleClick = (row: number, col: number) => {
     if (isGameOver()) return;
 
+    if (nextJumps.length > 0) {
+      let validJump = false;
+      nextJumps.forEach((val) => {
+        if (val[0] === row && val[1] === col) {
+          validJump = true;
+          setNextJumps([]);
+          return;
+        }
+      });
+
+      if (!validJump) return;
+    }
+
     if (selected.length === 0) {
       if (board[row][col] === turn || board[row][col] === turn * 11) {
         setSelected([row, col]);
@@ -198,6 +216,15 @@ const Board = () => {
       }
       if (!jumped) {
         setTurn(turn === 1 ? 2 : 1);
+      } else {
+        const { validJumps } = getValidMoves(row, col);
+        if (validJumps.length > 0) {
+          setNextJumps(validJumps);
+          setSelected([row, col]);
+          return;
+        } else {
+          setTurn(turn === 1 ? 2 : 1);
+        }
       }
     }
     setSelected([]);
@@ -233,17 +260,26 @@ const Board = () => {
     if (Math.abs(rowDiff) === 2 && Math.abs(colDiff) === 2) {
       const rowMid = (row + prevRow) / 2;
       const colMid = (col + prevCol) / 2;
-      if (board[rowMid][colMid] !== 0 && board[rowMid][colMid] !== turn) {
+      const piece = board[rowMid][colMid];
+      if (piece !== 0 && piece !== turn) {
         setBoard((prevBoard) => {
           const newBoard = [...prevBoard];
           newBoard[rowMid][colMid] = 0;
           return newBoard;
         });
         jumped = true;
-        if (turn === 2) {
+        if (turn === 22) {
+          setPointsRed(pointsRed + 2);
+          setCapturedBlack(capturedBlack + 1);
+        } else if (turn === 11) {
+          setPointsBlack(pointsBlack + 2);
+          setCapturedRed(capturedRed + 1);
+        } else if (turn === 2) {
           setPointsRed(pointsRed + 1);
+          setCapturedBlack(capturedBlack + 1);
         } else {
           setPointsBlack(pointsBlack + 1);
+          setCapturedRed(capturedRed + 1);
         }
         return true;
       }
@@ -257,7 +293,7 @@ const Board = () => {
   };
 
   const isGameOver = (): boolean => {
-    return pointsRed === 12 || pointsBlack === 12;
+    return capturedRed === 12 || capturedBlack === 12;
   };
 
   return (
@@ -277,11 +313,11 @@ const Board = () => {
           {isGameOver() && (
             <div
               className={`alert alert-${
-                pointsRed === 12 ? "success" : "danger"
+                capturedBlack === 12 ? "success" : "danger"
               }`}
               role="alert"
             >
-              {pointsRed === 12 ? "Red" : "Black"} wins!
+              {capturedBlack === 12 ? "Red" : "Black"} wins!
             </div>
           )}
           <hr />

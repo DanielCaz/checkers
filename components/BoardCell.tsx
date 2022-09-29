@@ -27,6 +27,7 @@ const BoardCell = ({
       className={`text-center bg-${
         isSelected ? "info" : isValidSquare ? "light" : "secondary"
       }`}
+      id={`${rowIndex}${cellIndex}`}
     >
       {(cell === 1 || cell === 2 || cell === 11 || cell === 22) && (
         <Image
