@@ -15,127 +15,27 @@ const Board = () => {
   const [turn, setTurn] = useState<number>(2);
   const [pointsRed, setPointsRed] = useState(0);
   const [pointsBlack, setPointsBlack] = useState(0);
-  const [capturedRed, setCapturedRed] = useState(0);
-  const [capturedBlack, setCapturedBlack] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
   const [nextJumps, setNextJumps] = useState<number[][]>([]);
+  const [thinking, setThinking] = useState(false);
 
   let jumped = false;
 
-  const getValidMoves = (row: number, col: number) => {
-    const validMoves: number[][] = [];
-    const validJumps: number[][] = [];
-    const piece = board[row][col];
-
-    if (piece === 11 || piece === 22) {
-      if (row > 0 && col > 0) {
-        if (board[row - 1][col - 1] === 0) {
-          validMoves.push([row - 1, col - 1]);
-        } else if (
-          (board[row - 1][col - 1] === 1 || board[row - 1][col - 1] === 11) &&
-          row > 1 &&
-          col > 1 &&
-          board[row - 2][col - 2] === 0
-        ) {
-          validJumps.push([row - 2, col - 2]);
-        }
-      }
-      if (row > 0 && col < 7) {
-        if (board[row - 1][col + 1] === 0) {
-          validMoves.push([row - 1, col + 1]);
-        } else if (
-          (board[row - 1][col + 1] === 1 || board[row - 1][col + 1] === 11) &&
-          row > 1 &&
-          col < 6 &&
-          board[row - 2][col + 2] === 0
-        ) {
-          validJumps.push([row - 2, col + 2]);
-        }
-      }
-      if (row < 7 && col > 0) {
-        if (board[row + 1][col - 1] === 0) {
-          validMoves.push([row + 1, col - 1]);
-        } else if (
-          (board[row + 1][col - 1] === 2 || board[row + 1][col - 1] === 22) &&
-          row < 6 &&
-          col > 1 &&
-          board[row + 2][col - 2] === 0
-        ) {
-          validJumps.push([row + 2, col - 2]);
-        }
-      }
-      if (row < 7 && col < 7) {
-        if (board[row + 1][col + 1] === 0) {
-          validMoves.push([row + 1, col + 1]);
-        } else if (
-          (board[row + 1][col + 1] === 2 || board[row + 1][col + 1] === 22) &&
-          row < 6 &&
-          col < 6 &&
-          board[row + 2][col + 2] === 0
-        ) {
-          validJumps.push([row + 2, col + 2]);
-        }
-      }
-    } else {
-      if (piece === 2) {
-        if (row > 0 && col > 0) {
-          if (board[row - 1][col - 1] === 0) {
-            validMoves.push([row - 1, col - 1]);
-          } else if (
-            (board[row - 1][col - 1] === 1 || board[row - 1][col - 1] === 11) &&
-            row > 1 &&
-            col > 1 &&
-            board[row - 2][col - 2] === 0
-          ) {
-            validJumps.push([row - 2, col - 2]);
-          }
-        }
-        if (row > 0 && col < 7) {
-          if (board[row - 1][col + 1] === 0) {
-            validMoves.push([row - 1, col + 1]);
-          } else if (
-            (board[row - 1][col + 1] === 1 || board[row - 1][col + 1] === 11) &&
-            row > 1 &&
-            col < 6 &&
-            board[row - 2][col + 2] === 0
-          ) {
-            validJumps.push([row - 2, col + 2]);
-          }
-        }
-      } else {
-        if (row < 7 && col > 0) {
-          if (board[row + 1][col - 1] === 0) {
-            validMoves.push([row + 1, col - 1]);
-          } else if (
-            (board[row + 1][col - 1] === 2 || board[row + 1][col - 1] === 22) &&
-            row < 6 &&
-            col > 1 &&
-            board[row + 2][col - 2] === 0
-          ) {
-            validJumps.push([row + 2, col - 2]);
-          }
-        }
-        if (row < 7 && col < 7) {
-          if (board[row + 1][col + 1] === 0) {
-            validMoves.push([row + 1, col + 1]);
-          } else if (
-            (board[row + 1][col + 1] === 2 || board[row + 1][col + 1] === 22) &&
-            row < 6 &&
-            col < 6 &&
-            board[row + 2][col + 2] === 0
-          ) {
-            validJumps.push([row + 2, col + 2]);
-          }
-        }
-      }
-    }
-
-    console.log(validJumps);
-
-    return { validMoves, validJumps };
+  type MovablePiece = {
+    row: number;
+    col: number;
+    isKing: boolean;
+    validMoves: number[][];
+    validJumps: number[][];
   };
 
-  const getJumpedOver = (row: number, col: number) => {
+  type BestMove = {
+    piece: MovablePiece;
+    moves: number[][];
+    points: number;
+  };
+
+  const canGetCaptured = (row: number, col: number): boolean => {
     if (turn === 2 || turn === 22) {
       if (row > 1 && col > 1 && board[row - 1][col - 1] !== 0) {
         if (
@@ -175,9 +75,299 @@ const Board = () => {
     return false;
   };
 
-  const handleClick = (row: number, col: number) => {
-    if (isGameOver()) return;
+  const aiMove = () => {
+    const movablePieces: MovablePiece[] = [];
 
+    board.forEach((row, i) => {
+      row.forEach((piece, j) => {
+        if (piece === 1 || piece === 11) {
+          const { validMoves, validJumps } = getValidMoves(i, j);
+          if (validJumps.length > 0 || validMoves.length > 0) {
+            movablePieces.push({
+              col: j,
+              row: i,
+              isKing: piece === 11,
+              validMoves,
+              validJumps,
+            });
+          }
+        }
+      });
+    });
+
+    const bestMoves: BestMove[] = [];
+    movablePieces.forEach((piece) => {
+      const { validJumps, validMoves } = piece;
+      if (validJumps.length > 0) {
+        validJumps.forEach((jump) => {
+          const [points, jumps] = analyzeJumps(jump);
+          let obj = { piece, nextMove: jump, moves: jumps, points };
+          if (canGetCaptured(jump[0], jump[1])) {
+            obj.points -= 1;
+          }
+          if (jumps[0][0] === 7) {
+            obj.points += 1;
+          }
+          bestMoves.push(obj);
+        });
+      } else if (validMoves.length > 0) {
+        validMoves.forEach((move) => {
+          let points = 0;
+          const { validJumps } = getValidMoves(move[0], move[1]);
+          points += validJumps.length;
+          let obj = { piece, nextMove: move, moves: [move], points };
+          if (canGetCaptured(move[0], move[1])) {
+            obj.points -= 1;
+          }
+          bestMoves.push(obj);
+        });
+      }
+    });
+
+    if (bestMoves.length > 0) {
+      bestMoves.sort((a, b) => b.points - a.points);
+      const bestMove = bestMoves[0];
+
+      const tdPiece = getTd(bestMove.piece.row, bestMove.piece.col);
+      const nextMove = bestMove.moves.pop()!;
+      const tdNextMove = getTd(nextMove[0], nextMove[1]);
+
+      if (tdPiece && tdNextMove) {
+        setThinking(false);
+        setTimeout(() => {
+          tdPiece.click();
+          setTimeout(() => {
+            tdNextMove.click();
+
+            bestMove.piece = {
+              ...bestMove.piece,
+              row: nextMove[0],
+              col: nextMove[1],
+            };
+
+            doJumps(bestMove.piece, bestMove.moves);
+          }, 500);
+        }, 500);
+      }
+    }
+  };
+
+  const getTd = (row: number, col: number): HTMLTableCellElement => {
+    return document.getElementById(`${row}${col}`) as HTMLTableCellElement;
+  };
+
+  const doJumps = (piece: MovablePiece, moves: number[][]) => {
+    if (moves.length === 0) return;
+
+    const nextMove = moves.pop()!;
+    const tdPiece = getTd(piece.row, piece.col);
+    const tdNextMove = getTd(nextMove[0], nextMove[1]);
+
+    if (tdPiece && tdNextMove) {
+      setTimeout(() => {
+        tdPiece.click();
+        setTimeout(() => {
+          tdNextMove.click();
+          doJumps({ ...piece, row: nextMove[0], col: nextMove[1] }, moves);
+        }, 500);
+      }, 500);
+    }
+  };
+
+  const analyzeJumps = (
+    jump: number[],
+    points: number = 0,
+    jumps: number[][] = []
+  ): [number, number[][]] => {
+    if (jump.length === 0) {
+      return [points, jumps];
+    }
+
+    const { validJumps } = getValidMoves(jump[0], jump[1]);
+    if (validJumps.length > 0) {
+      validJumps.forEach((j) => {
+        const [p, js] = analyzeJumps(j, points, jumps);
+        points += p;
+        jumps = js;
+      });
+    }
+
+    return [points + 1, jumps.concat([jump])];
+  };
+
+  const getValidMoves = (row: number, col: number) => {
+    const validMoves: number[][] = [];
+    const validJumps: number[][] = [];
+    const piece = board[row][col];
+
+    if (piece === 22) {
+      if (row > 0 && col > 0) {
+        if (board[row - 1][col - 1] === 0) {
+          validMoves.push([row - 1, col - 1]);
+        }
+        if (
+          (board[row - 1][col - 1] === 1 || board[row - 1][col - 1] === 11) &&
+          row > 1 &&
+          col > 1 &&
+          board[row - 2][col - 2] === 0
+        ) {
+          validJumps.push([row - 2, col - 2]);
+        }
+      }
+      if (row > 0 && col < 7) {
+        if (board[row - 1][col + 1] === 0) {
+          validMoves.push([row - 1, col + 1]);
+        }
+        if (
+          (board[row - 1][col + 1] === 1 || board[row - 1][col + 1] === 11) &&
+          row > 1 &&
+          col < 6 &&
+          board[row - 2][col + 2] === 0
+        ) {
+          validJumps.push([row - 2, col + 2]);
+        }
+      }
+      if (row < 7 && col > 0) {
+        if (board[row + 1][col - 1] === 0) {
+          validMoves.push([row + 1, col - 1]);
+        }
+        if (
+          (board[row + 1][col - 1] === 1 || board[row + 1][col - 1] === 11) &&
+          row < 6 &&
+          col > 1 &&
+          board[row + 2][col - 2] === 0
+        ) {
+          validJumps.push([row + 2, col - 2]);
+        }
+      }
+      if (row < 7 && col < 7) {
+        if (board[row + 1][col + 1] === 0) {
+          validMoves.push([row + 1, col + 1]);
+        }
+        if (
+          (board[row + 1][col + 1] === 1 || board[row + 1][col + 1] === 11) &&
+          row < 6 &&
+          col < 6 &&
+          board[row + 2][col + 2] === 0
+        ) {
+          validJumps.push([row + 2, col + 2]);
+        }
+      }
+    } else if (piece === 11) {
+      if (row > 0 && col > 0) {
+        if (board[row - 1][col - 1] === 0) {
+          validMoves.push([row - 1, col - 1]);
+        }
+        if (
+          (board[row - 1][col - 1] === 2 || board[row - 1][col - 1] === 22) &&
+          row > 1 &&
+          col > 1 &&
+          board[row - 2][col - 2] === 0
+        ) {
+          validJumps.push([row - 2, col - 2]);
+        }
+      }
+      if (row > 0 && col < 7) {
+        if (board[row - 1][col + 1] === 0) {
+          validMoves.push([row - 1, col + 1]);
+        }
+        if (
+          (board[row - 1][col + 1] === 2 || board[row - 1][col + 1] === 22) &&
+          row > 1 &&
+          col < 6 &&
+          board[row - 2][col + 2] === 0
+        ) {
+          validJumps.push([row - 2, col + 2]);
+        }
+      }
+      if (row < 7 && col > 0) {
+        if (board[row + 1][col - 1] === 0) {
+          validMoves.push([row + 1, col - 1]);
+        }
+        if (
+          (board[row + 1][col - 1] === 2 || board[row + 1][col - 1] === 22) &&
+          row < 6 &&
+          col > 1 &&
+          board[row + 2][col - 2] === 0
+        ) {
+          validJumps.push([row + 2, col - 2]);
+        }
+      }
+      if (row < 7 && col < 7) {
+        if (board[row + 1][col + 1] === 0) {
+          validMoves.push([row + 1, col + 1]);
+        }
+        if (
+          (board[row + 1][col + 1] === 2 || board[row + 1][col + 1] === 22) &&
+          row < 6 &&
+          col < 6 &&
+          board[row + 2][col + 2] === 0
+        ) {
+          validJumps.push([row + 2, col + 2]);
+        }
+      }
+    } else {
+      if (piece === 2) {
+        if (row > 0 && col > 0) {
+          if (board[row - 1][col - 1] === 0) {
+            validMoves.push([row - 1, col - 1]);
+          }
+          if (
+            (board[row - 1][col - 1] === 1 || board[row - 1][col - 1] === 11) &&
+            row > 1 &&
+            col > 1 &&
+            board[row - 2][col - 2] === 0
+          ) {
+            validJumps.push([row - 2, col - 2]);
+          }
+        }
+        if (row > 0 && col < 7) {
+          if (board[row - 1][col + 1] === 0) {
+            validMoves.push([row - 1, col + 1]);
+          }
+          if (
+            (board[row - 1][col + 1] === 1 || board[row - 1][col + 1] === 11) &&
+            row > 1 &&
+            col < 6 &&
+            board[row - 2][col + 2] === 0
+          ) {
+            validJumps.push([row - 2, col + 2]);
+          }
+        }
+      } else {
+        if (row < 7 && col > 0) {
+          if (board[row + 1][col - 1] === 0) {
+            validMoves.push([row + 1, col - 1]);
+          }
+          if (
+            (board[row + 1][col - 1] === 2 || board[row + 1][col - 1] === 22) &&
+            row < 6 &&
+            col > 1 &&
+            board[row + 2][col - 2] === 0
+          ) {
+            validJumps.push([row + 2, col - 2]);
+          }
+        }
+        if (row < 7 && col < 7) {
+          if (board[row + 1][col + 1] === 0) {
+            validMoves.push([row + 1, col + 1]);
+          }
+          if (
+            (board[row + 1][col + 1] === 2 || board[row + 1][col + 1] === 22) &&
+            row < 6 &&
+            col < 6 &&
+            board[row + 2][col + 2] === 0
+          ) {
+            validJumps.push([row + 2, col + 2]);
+          }
+        }
+      }
+    }
+
+    return { validMoves, validJumps };
+  };
+
+  const handleClick = (row: number, col: number) => {
     if (nextJumps.length > 0) {
       let validJump = false;
       nextJumps.forEach((val) => {
@@ -219,12 +409,31 @@ const Board = () => {
       } else {
         const { validJumps } = getValidMoves(row, col);
         if (validJumps.length > 0) {
-          setNextJumps(validJumps);
-          setSelected([row, col]);
-          return;
+          let containsPrev = false;
+          validJumps.forEach((val) => {
+            if (val[0] === prevRow && val[1] === prevCol) {
+              containsPrev = true;
+              return;
+            }
+          });
+
+          if (containsPrev) {
+            setTurn(turn === 1 ? 2 : 1);
+          } else {
+            setNextJumps(validJumps);
+            setSelected([row, col]);
+            return;
+          }
         } else {
           setTurn(turn === 1 ? 2 : 1);
         }
+      }
+
+      if (turn === 2) {
+        setThinking(true);
+        setTimeout(() => {
+          aiMove();
+        }, 500);
       }
     }
     setSelected([]);
@@ -268,18 +477,12 @@ const Board = () => {
           return newBoard;
         });
         jumped = true;
-        if (turn === 22) {
-          setPointsRed(pointsRed + 2);
-          setCapturedBlack(capturedBlack + 1);
-        } else if (turn === 11) {
-          setPointsBlack(pointsBlack + 2);
-          setCapturedRed(capturedRed + 1);
-        } else if (turn === 2) {
+        if (turn === 2) {
           setPointsRed(pointsRed + 1);
-          setCapturedBlack(capturedBlack + 1);
         } else {
           setPointsBlack(pointsBlack + 1);
-          setCapturedRed(capturedRed + 1);
+        }
+        if (pointsBlack === 12 || pointsRed === 12) {
         }
         return true;
       }
@@ -290,10 +493,6 @@ const Board = () => {
 
   const isValidSquare = (row: number, col: number): boolean => {
     return row % 2 !== 0 ? col % 2 === 0 : col % 2 !== 0;
-  };
-
-  const isGameOver = (): boolean => {
-    return capturedRed === 12 || capturedBlack === 12;
   };
 
   return (
@@ -310,17 +509,21 @@ const Board = () => {
             Red: <span className="text-danger">{pointsRed}</span> - Black:{" "}
             <span className="text-dark">{pointsBlack}</span>
           </p>
-          {isGameOver() && (
-            <div
-              className={`alert alert-${
-                capturedBlack === 12 ? "success" : "danger"
-              }`}
-              role="alert"
-            >
-              {capturedBlack === 12 ? "Red" : "Black"} wins!
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              window.location.reload();
+            }}
+          >
+            New Game
+          </button>
+          <hr />
+          {thinking && (
+            <div className="alert alert-info" role="alert">
+              AI is thinking...
             </div>
           )}
-          <hr />
         </caption>
         <thead>
           <tr>
