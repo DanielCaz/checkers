@@ -496,9 +496,9 @@ const Board = () => {
   };
 
   return (
-    <div className="mx-auto table-responsive" style={{ maxWidth: 600 }}>
-      <table className="table table caption-top">
-        <caption>
+    <>
+      <div className="row">
+        <div className="col-md-2">
           <p>
             Turn:{" "}
             <span className={`text-${turn === 1 ? "dark" : "danger"}`}>
@@ -524,44 +524,48 @@ const Board = () => {
               AI is thinking...
             </div>
           )}
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">A</th>
-            <th scope="col">B</th>
-            <th scope="col">C</th>
-            <th scope="col">D</th>
-            <th scope="col">E</th>
-            <th scope="col">F</th>
-            <th scope="col">G</th>
-            <th scope="col">H</th>
-          </tr>
-        </thead>
-        <tbody>
-          {board.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              <th scope="row">{rowIndex + 1}</th>
-              {row.map((cell, cellIndex) => (
-                <BoardCell
-                  key={cellIndex}
-                  cell={cell}
-                  isSelected={
-                    selected.length > 0 &&
-                    selected[0] === rowIndex &&
-                    selected[1] === cellIndex
-                  }
-                  rowIndex={rowIndex}
-                  cellIndex={cellIndex}
-                  handleClick={handleClick}
-                  isValidSquare={isValidSquare(rowIndex, cellIndex)}
-                />
+        </div>
+        <div className="mx-auto col table-responsive" style={{ maxWidth: 600 }}>
+          <table className="table table">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">A</th>
+                <th scope="col">B</th>
+                <th scope="col">C</th>
+                <th scope="col">D</th>
+                <th scope="col">E</th>
+                <th scope="col">F</th>
+                <th scope="col">G</th>
+                <th scope="col">H</th>
+              </tr>
+            </thead>
+            <tbody>
+              {board.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  <th scope="row">{rowIndex + 1}</th>
+                  {row.map((cell, cellIndex) => (
+                    <BoardCell
+                      key={cellIndex}
+                      cell={cell}
+                      isSelected={
+                        selected.length > 0 &&
+                        selected[0] === rowIndex &&
+                        selected[1] === cellIndex
+                      }
+                      rowIndex={rowIndex}
+                      cellIndex={cellIndex}
+                      handleClick={handleClick}
+                      isValidSquare={isValidSquare(rowIndex, cellIndex)}
+                    />
+                  ))}
+                </tr>
               ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
 };
 
