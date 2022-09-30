@@ -3,7 +3,7 @@ import Board from "../components/Board";
 
 const Home: NextPage = () => {
   return (
-    <div className="container py-4 vh-100">
+    <div className="container py-4">
       <Board />
     </div>
   );
