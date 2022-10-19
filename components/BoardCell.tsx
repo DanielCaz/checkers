@@ -7,6 +7,7 @@ const BoardCell = ({
   cell,
   isSelected,
   isValidSquare,
+  isHighlighted,
 }: {
   handleClick: (row: number, col: number) => void;
   rowIndex: number;
@@ -14,6 +15,7 @@ const BoardCell = ({
   cell: number;
   isSelected: boolean;
   isValidSquare: boolean;
+  isHighlighted: boolean;
 }) => {
   return (
     <td
@@ -25,7 +27,13 @@ const BoardCell = ({
         height: 75,
       }}
       className={`text-center bg-${
-        isSelected ? "info" : isValidSquare ? "light" : "secondary"
+        isSelected
+          ? "info"
+          : isValidSquare
+          ? isHighlighted
+            ? "warning"
+            : "light"
+          : "secondary"
       }`}
       id={`${rowIndex}${cellIndex}`}
     >

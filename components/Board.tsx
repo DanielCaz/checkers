@@ -17,7 +17,7 @@ const Board = () => {
   const [pointsBlack, setPointsBlack] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
   const [nextJumps, setNextJumps] = useState<number[][]>([]);
-  const [thinking, setThinking] = useState(false);
+  const [highlightedCells, setHighlightedCells] = useState<number[][]>([]);
 
   let jumped = false;
 
@@ -100,7 +100,7 @@ const Board = () => {
       const { validJumps, validMoves } = piece;
       if (validJumps.length > 0) {
         validJumps.forEach((jump) => {
-          const [points, jumps] = analyzeJumps(jump);
+          const [points, jumps] = analyzeJumps(piece, jump);
           let obj = { piece, nextMove: jump, moves: jumps, points };
           if (canGetCaptured(jump[0], jump[1])) {
             obj.points -= 1;
@@ -133,7 +133,6 @@ const Board = () => {
       const tdNextMove = getTd(nextMove[0], nextMove[1]);
 
       if (tdPiece && tdNextMove) {
-        setThinking(false);
         setTimeout(() => {
           tdPiece.click();
           setTimeout(() => {
@@ -146,8 +145,8 @@ const Board = () => {
             };
 
             doJumps(bestMove.piece, bestMove.moves);
-          }, 500);
-        }, 500);
+          }, 100);
+        }, 100);
       }
     }
   };
@@ -169,12 +168,13 @@ const Board = () => {
         setTimeout(() => {
           tdNextMove.click();
           doJumps({ ...piece, row: nextMove[0], col: nextMove[1] }, moves);
-        }, 500);
-      }, 500);
+        }, 100);
+      }, 100);
     }
   };
 
   const analyzeJumps = (
+    piece: MovablePiece,
     jump: number[],
     points: number = 0,
     jumps: number[][] = []
@@ -186,7 +186,7 @@ const Board = () => {
     const { validJumps } = getValidMoves(jump[0], jump[1]);
     if (validJumps.length > 0) {
       validJumps.forEach((j) => {
-        const [p, js] = analyzeJumps(j, points, jumps);
+        const [p, js] = analyzeJumps(piece, j, points, jumps);
         points += p;
         jumps = js;
       });
@@ -383,13 +383,13 @@ const Board = () => {
 
     if (selected.length === 0) {
       if (board[row][col] === turn || board[row][col] === turn * 11) {
-        setSelected([row, col]);
+        selectCell([row, col]);
       }
       return;
     }
 
     if (!isValidMove(row, col)) {
-      setSelected([]);
+      selectCell([]);
       return;
     }
 
@@ -421,7 +421,7 @@ const Board = () => {
             setTurn(turn === 1 ? 2 : 1);
           } else {
             setNextJumps(validJumps);
-            setSelected([row, col]);
+            selectCell([row, col]);
             return;
           }
         } else {
@@ -430,13 +430,22 @@ const Board = () => {
       }
 
       if (turn === 2) {
-        setThinking(true);
         setTimeout(() => {
           aiMove();
-        }, 500);
+        }, 100);
       }
     }
-    setSelected([]);
+    selectCell([]);
+  };
+
+  const selectCell = (coors: number[]) => {
+    setSelected(coors);
+    if (coors.length === 0) {
+      setHighlightedCells([]);
+    } else {
+      const { validMoves } = getValidMoves(coors[0], coors[1]);
+      setHighlightedCells(validMoves);
+    }
   };
 
   const isValidMove = (row: number, col: number): boolean => {
@@ -482,8 +491,6 @@ const Board = () => {
         } else {
           setPointsBlack(pointsBlack + 1);
         }
-        if (pointsBlack === 12 || pointsRed === 12) {
-        }
         return true;
       }
     }
@@ -493,6 +500,25 @@ const Board = () => {
 
   const isValidSquare = (row: number, col: number): boolean => {
     return row % 2 !== 0 ? col % 2 === 0 : col % 2 !== 0;
+  };
+
+  const resetGame = () => {
+    setBoard([
+      [0, 1, 0, 1, 0, 1, 0, 1],
+      [1, 0, 1, 0, 1, 0, 1, 0],
+      [0, 1, 0, 1, 0, 1, 0, 1],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [2, 0, 2, 0, 2, 0, 2, 0],
+      [0, 2, 0, 2, 0, 2, 0, 2],
+      [2, 0, 2, 0, 2, 0, 2, 0],
+    ]);
+    setTurn(2);
+    setPointsRed(0);
+    setPointsBlack(0);
+    setSelected([]);
+    setNextJumps([]);
+    setHighlightedCells([]);
   };
 
   return (
@@ -512,18 +538,11 @@ const Board = () => {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => {
-              window.location.reload();
-            }}
+            onClick={resetGame}
           >
             New Game
           </button>
           <hr />
-          {thinking && (
-            <div className="alert alert-info" role="alert">
-              AI is thinking...
-            </div>
-          )}
         </div>
         <div className="mx-auto col table-responsive" style={{ maxWidth: 600 }}>
           <table className="table table">
@@ -557,6 +576,10 @@ const Board = () => {
                       cellIndex={cellIndex}
                       handleClick={handleClick}
                       isValidSquare={isValidSquare(rowIndex, cellIndex)}
+                      isHighlighted={highlightedCells.includes([
+                        rowIndex,
+                        cellIndex,
+                      ])}
                     />
                   ))}
                 </tr>
